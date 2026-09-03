@@ -38,7 +38,7 @@ export default function Dashboard({ onNavigate, userEmail }) {
       <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "22px 40px", borderBottom: "1px solid #232838" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, fontWeight: 700, fontSize: 18 }}>
           <div style={{ width: 26, height: 26, borderRadius: 6, background: "linear-gradient(135deg, #ff4d4d, #b32424)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>🚩</div>
-          RedFlag
+          ConsentClear
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
           <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, color: "#838aa0" }}>{userEmail}</span>

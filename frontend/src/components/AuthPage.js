@@ -37,7 +37,7 @@ export default function AuthPage() {
       <div style={{ width: "100%", maxWidth: 380, padding: "0 24px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, justifyContent: "center", marginBottom: 32 }}>
           <div style={{ width: 26, height: 26, borderRadius: 6, background: "linear-gradient(135deg, #ff4d4d, #b32424)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>🚩</div>
-          <span style={{ fontWeight: 700, fontSize: 18 }}>RedFlag</span>
+          <span style={{ fontWeight: 700, fontSize: 18 }}>ConsentClear</span>
         </div>
 
         <div style={{ background: "#12151d", border: "1px solid #232838", borderRadius: 12, padding: "28px 26px" }}>
