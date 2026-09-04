@@ -95,9 +95,10 @@ export default function App() {
       : <RequiresScan title="Chat with the policy" onBack={goToDashboard} onGoScan={goToScan} />;
   }
   if (view === "history") {
-    return policyId
-      ? <HistoryPanel policyId={policyId} onBack={goToDashboard} />
-      : <RequiresScan title="Compliance history" onBack={goToDashboard} onGoScan={goToScan} />;
+    // HistoryPanel lists every scanned policy itself, so it doesn't need a
+    // scan to exist first — policyId (if we have one) just pre-opens that
+    // policy's detail view instead of the list.
+    return <HistoryPanel policyId={policyId} onBack={goToDashboard} />;
   }
   if (view === "notice") {
     return scanId

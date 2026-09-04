@@ -5,7 +5,7 @@ const axios = require("axios");
 const cheerio = require("cheerio");
 const pdf = require("pdf-parse");
 const { analyzeWithGemini, chatWithPolicy, generateRegulatorNotice, analyzeDarkPatterns } = require("../lib/gemini");
-const { saveScan, getScan, getScanHistory, getUserIdFromToken, supabase } = require("../lib/supabase");
+const { saveScan, getScan, getScanHistory, getUserIdFromToken, getAlerts, supabase } = require("../lib/supabase");
 
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -116,20 +116,58 @@ router.get("/history/:policyId", async (req, res) => {
   }
 });
 
-// Lists the logged-in user's policies (with their latest scan info) — feeds the dashboard
+// Lists the logged-in user's policies, enriched with each one's latest risk
+// score, last-scanned time, and how many scans it has — feeds both the
+// dashboard metrics and the History panel's policy list.
 router.get("/my-policies", async (req, res) => {
   try {
     const userId = await getUserIdFromToken(req.headers.authorization);
     if (!userId) return res.status(401).json({ error: "Login required" });
 
-    const { data, error } = await supabase
+    const { data: policies, error } = await supabase
       .from("policies")
       .select("id, url, jurisdiction, is_monitored, created_at")
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
     if (error) throw error;
 
-    res.json({ success: true, policies: data });
+    if (!policies.length) return res.json({ success: true, policies: [] });
+
+    const policyIds = policies.map((p) => p.id);
+    const { data: scans, error: scanErr } = await supabase
+      .from("scans")
+      .select("policy_id, risk_score, created_at")
+      .in("policy_id", policyIds)
+      .order("created_at", { ascending: false });
+    if (scanErr) throw scanErr;
+
+    // scans is already newest-first, so the first hit per policy_id is the latest scan
+    const latestByPolicy = {};
+    const countByPolicy = {};
+    for (const s of scans) {
+      countByPolicy[s.policy_id] = (countByPolicy[s.policy_id] || 0) + 1;
+      if (!latestByPolicy[s.policy_id]) latestByPolicy[s.policy_id] = s;
+    }
+
+    const enriched = policies.map((p) => ({
+      ...p,
+      latest_risk_score: latestByPolicy[p.id]?.risk_score || null,
+      last_scanned_at: latestByPolicy[p.id]?.created_at || p.created_at,
+      scan_count: countByPolicy[p.id] || 0,
+    }));
+
+    res.json({ success: true, policies: enriched });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Drift/amendment alert feed for one monitored policy — feeds the
+// "Monitored" tab detail view in the History panel.
+router.get("/alerts/:policyId", async (req, res) => {
+  try {
+    const alerts = await getAlerts(req.params.policyId);
+    res.json({ success: true, alerts });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

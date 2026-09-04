@@ -75,4 +75,16 @@ async function getScanHistory(policyId) {
   return data;
 }
 
-module.exports = { supabase, hashText, getUserIdFromToken, saveScan, getScan, getMonitoredPolicies, getScanHistory };
+// Drift/amendment alerts for one policy — populated by the monitoring cron
+// whenever a re-check finds the policy text changed.
+async function getAlerts(policyId) {
+  const { data, error } = await supabase
+    .from("alerts")
+    .select("id, type, message, sent_at")
+    .eq("policy_id", policyId)
+    .order("sent_at", { ascending: false });
+  if (error) throw error;
+  return data;
+}
+
+module.exports = { supabase, hashText, getUserIdFromToken, saveScan, getScan, getMonitoredPolicies, getScanHistory, getAlerts };

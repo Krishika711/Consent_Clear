@@ -6,7 +6,7 @@ const CARDS = [
   { key: "scan", icon: "🔍", tag: "LIVE", title: "New scan", desc: "Paste a policy URL or upload a PDF. Get a clause-level DPDP verdict in 30 seconds.", stat: "Start now", wide: true },
   { key: "chat", icon: "💬", tag: "LIVE", title: "Chat with the policy", desc: "Ask plain questions like \u201ccan they sell my data?\u201d and get answers tied to the exact clause and section.", stat: "Needs a scan first" },
   { key: "monitor", icon: "🔄", tag: "LIVE", title: "Continuous monitoring", desc: "Re-scans policies on a schedule and flags the moment a company quietly edits a clause.", stat: "" },
-  { key: "history", icon: "📈", tag: "LIVE", title: "Compliance history", desc: "A timeline of every score change, so you can see whether compliance is trending up or down.", stat: "Needs a scan first" },
+  { key: "history", icon: "📈", tag: "LIVE", title: "Compliance history", desc: "A timeline of every score change, so you can see whether compliance is trending up or down.", stat: "Browse all scans" },
   { key: "darkpattern", icon: "🚩", tag: "LIVE", title: "Dark pattern detector", desc: "Scans a page's cookie/consent banner markup for pre-ticked boxes and hidden reject options.", stat: "Enter any URL" },
   { key: "notice", icon: "📜", tag: "LIVE", title: "Mock regulator notice", desc: "Generates an illustrative DPDP Board-style notice from a scan's violations.", stat: "Needs a scan first" },
   { key: "badge", icon: "🛡️", tag: "LIVE", title: "DPDP verified badge", desc: "An embeddable, live-linked badge for your site showing the latest scan result.", stat: "Needs a scan first" },
