@@ -3,7 +3,7 @@
 
 > Paste a privacy policy URL or upload a PDF. Get a clause-level compliance verdict — violations, fine exposure, and rewritten clauses — in under 30 seconds.
 
-   🔴 Live Demo: [https://consent-clear-5ij8.vercel.app](https://consent-clear-5ij8.vercel.app)
+   🔴 Live Demo: [https://consent-clear-5ij8.vercel.app]
 
 ---
 
