@@ -4,7 +4,7 @@ const multer = require("multer");
 const axios = require("axios");
 const cheerio = require("cheerio");
 const pdf = require("pdf-parse");
-const { analyzeWithGemini, chatWithPolicy } = require("../lib/gemini");
+const { analyzeWithGemini, chatWithPolicy, generateRegulatorNotice, analyzeDarkPatterns } = require("../lib/gemini");
 const { saveScan, getScan, getScanHistory, getUserIdFromToken, supabase } = require("../lib/supabase");
 
 const upload = multer({ storage: multer.memoryStorage() });
@@ -132,6 +132,90 @@ router.get("/my-policies", async (req, res) => {
     res.json({ success: true, policies: data });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// Mock DPDP Board-style notice, generated from an existing scan's violations.
+// Clearly illustrative — see the disclaimer baked into the generated text itself.
+router.post("/notice", async (req, res) => {
+  try {
+    const { scan_id } = req.body;
+    if (!scan_id) return res.status(400).json({ error: "scan_id is required" });
+    const scan = await getScan(scan_id);
+    const notice = await generateRegulatorNotice(scan.policy_text, scan.result_json);
+    res.json({ success: true, notice });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Dark pattern detector: fetches the live page, pulls out checkbox/button
+// signals via cheerio (no headless browser — works within Render's free
+// tier), and asks Gemini to interpret them.
+router.post("/dark-patterns", async (req, res) => {
+  try {
+    const { url } = req.body;
+    if (!url) return res.status(400).json({ error: "url is required" });
+
+    const { data } = await axios.get(url, {
+      headers: { "User-Agent": "Mozilla/5.0" },
+      timeout: 10000,
+    });
+    const $ = cheerio.load(data);
+    const signals = [];
+
+    $("input[type=checkbox]").each((_, el) => {
+      const $el = $(el);
+      signals.push({
+        type: "checkbox",
+        checked: $el.attr("checked") !== undefined,
+        nearText: $el.parent().text().trim().slice(0, 100),
+      });
+    });
+
+    $("button, a").each((_, el) => {
+      const text = $(el).text().trim();
+      if (!/accept|reject|decline|agree|consent|cookie|allow all|deny/i.test(text)) return;
+      const style = $(el).attr("style") || "";
+      const hidden = $(el).attr("hidden") !== undefined || /display:\s*none|visibility:\s*hidden/i.test(style);
+      signals.push({ type: "button", text: text.slice(0, 60), hidden });
+    });
+
+    const capped = signals.slice(0, 40);
+    if (capped.length === 0) {
+      return res.json({
+        success: true,
+        result: { patterns_found: [], summary: "No consent/cookie banner elements were found on this page — nothing to analyze." },
+        signals_found: 0,
+      });
+    }
+
+    const result = await analyzeDarkPatterns(capped);
+    res.json({ success: true, result, signals_found: capped.length });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Public, embeddable SVG badge showing a policy's latest risk score —
+// no auth required, meant to be used as an <img src="..."> on any site.
+router.get("/badge/:policyId", async (req, res) => {
+  try {
+    const history = await getScanHistory(req.params.policyId);
+    const latest = history[history.length - 1];
+    const score = latest?.risk_score || "UNSCANNED";
+    const color = { LOW: "#4ade9c", MEDIUM: "#ffb454", HIGH: "#ff8c42", CRITICAL: "#ff4d4d" }[score] || "#888";
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="150" height="20">
+  <rect width="60" height="20" fill="#333"/>
+  <rect x="60" width="90" height="20" fill="${color}"/>
+  <text x="30" y="14" fill="#fff" font-family="Verdana" font-size="11" text-anchor="middle">DPDP</text>
+  <text x="105" y="14" fill="#fff" font-family="Verdana" font-size="11" text-anchor="middle">${score}</text>
+</svg>`;
+    res.set("Content-Type", "image/svg+xml");
+    res.set("Cache-Control", "no-cache");
+    res.send(svg);
+  } catch (err) {
+    res.status(500).send("");
   }
 });
 
