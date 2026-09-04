@@ -7,10 +7,13 @@ import VerdictCard from "./components/VerdictCard";
 import Loader from "./components/Loader";
 import ChatPanel from "./components/ChatPanel";
 import HistoryPanel from "./components/HistoryPanel";
+import NoticePanel from "./components/NoticePanel";
+import DarkPatternPanel from "./components/DarkPatternPanel";
+import BadgePanel from "./components/BadgePanel";
 
 export default function App() {
   const [session, setSession] = useState(undefined); // undefined = checking, null = logged out
-  const [view, setView] = useState("dashboard"); // dashboard | scan | result | chat | history
+  const [view, setView] = useState("dashboard"); // dashboard | scan | result | chat | history | notice | darkpattern | badge
 
   const [result, setResult] = useState(null);
   const [scanId, setScanId] = useState(null);
@@ -46,22 +49,22 @@ export default function App() {
       <Dashboard
         userEmail={session.user.email}
         onNavigate={(key) => {
-          if (key === "scan") goToScan();
+          if (key === "scan" || key === "monitor") goToScan();
           else if (key === "chat") setView(scanId ? "chat" : "scan");
           else if (key === "history") setView(policyId ? "history" : "scan");
-          else if (key === "monitor") goToScan();
+          else if (key === "notice") setView(scanId ? "notice" : "scan");
+          else if (key === "badge") setView(policyId ? "badge" : "scan");
+          else if (key === "darkpattern") setView("darkpattern");
         }}
       />
     );
   }
 
-  if (view === "chat") {
-    return <ChatPanel scanId={scanId} onBack={goToDashboard} />;
-  }
-
-  if (view === "history") {
-    return <HistoryPanel policyId={policyId} onBack={goToDashboard} />;
-  }
+  if (view === "chat") return <ChatPanel scanId={scanId} onBack={goToDashboard} />;
+  if (view === "history") return <HistoryPanel policyId={policyId} onBack={goToDashboard} />;
+  if (view === "notice") return <NoticePanel scanId={scanId} onBack={goToDashboard} />;
+  if (view === "darkpattern") return <DarkPatternPanel onBack={goToDashboard} />;
+  if (view === "badge") return <BadgePanel policyId={policyId} onBack={goToDashboard} />;
 
   // view === "scan" or "result"
   return (
@@ -104,15 +107,25 @@ export default function App() {
         {result && !loading && (
           <>
             <VerdictCard result={result} />
-            <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
+            <div style={{ display: "flex", gap: 10, marginTop: 16, flexWrap: "wrap" }}>
               {scanId && (
-                <button onClick={() => setView("chat")} style={{ flex: 1, background: "#0a1628", border: "1px solid #1e3a5f", borderRadius: 8, color: "#3b82f6", padding: "10px 16px", cursor: "pointer", fontSize: 14 }}>
-                  💬 Chat with this policy
+                <button onClick={() => setView("chat")} style={{ flex: 1, minWidth: 140, background: "#0a1628", border: "1px solid #1e3a5f", borderRadius: 8, color: "#3b82f6", padding: "10px 16px", cursor: "pointer", fontSize: 14 }}>
+                  💬 Chat
                 </button>
               )}
               {policyId && (
-                <button onClick={() => setView("history")} style={{ flex: 1, background: "#0f0f0f", border: "1px solid #1e1e1e", borderRadius: 8, color: "#888", padding: "10px 16px", cursor: "pointer", fontSize: 14 }}>
-                  📈 View history
+                <button onClick={() => setView("history")} style={{ flex: 1, minWidth: 140, background: "#0f0f0f", border: "1px solid #1e1e1e", borderRadius: 8, color: "#888", padding: "10px 16px", cursor: "pointer", fontSize: 14 }}>
+                  📈 History
+                </button>
+              )}
+              {scanId && (
+                <button onClick={() => setView("notice")} style={{ flex: 1, minWidth: 140, background: "#0f0f0f", border: "1px solid #1e1e1e", borderRadius: 8, color: "#888", padding: "10px 16px", cursor: "pointer", fontSize: 14 }}>
+                  📜 Mock notice
+                </button>
+              )}
+              {policyId && (
+                <button onClick={() => setView("badge")} style={{ flex: 1, minWidth: 140, background: "#0f0f0f", border: "1px solid #1e1e1e", borderRadius: 8, color: "#888", padding: "10px 16px", cursor: "pointer", fontSize: 14 }}>
+                  🛡️ Badge
                 </button>
               )}
             </div>
