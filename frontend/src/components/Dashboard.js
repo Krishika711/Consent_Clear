@@ -7,9 +7,9 @@ const CARDS = [
   { key: "chat", icon: "💬", tag: "LIVE", title: "Chat with the policy", desc: "Ask plain questions like \u201ccan they sell my data?\u201d and get answers tied to the exact clause and section.", stat: "Needs a scan first" },
   { key: "monitor", icon: "🔄", tag: "LIVE", title: "Continuous monitoring", desc: "Re-scans policies on a schedule and flags the moment a company quietly edits a clause.", stat: "" },
   { key: "history", icon: "📈", tag: "LIVE", title: "Compliance history", desc: "A timeline of every score change, so you can see whether compliance is trending up or down.", stat: "Needs a scan first" },
-  { key: "darkpattern", icon: "🚩", tag: "SOON", title: "Dark pattern detector", desc: "Will scan live cookie banners and consent UIs for pre-ticked boxes and hidden reject buttons.", stat: "Coming soon", disabled: true },
-  { key: "notice", icon: "📜", tag: "SOON", title: "Mock regulator notice", desc: "Will generate a realistic DPDP Board notice showing what your gaps could trigger.", stat: "Coming soon", disabled: true },
-  { key: "badge", icon: "🛡️", tag: "SOON", title: "DPDP verified badge", desc: "An embeddable, live-linked trust badge for your site — like an SSL badge, but for privacy.", stat: "Coming soon", disabled: true },
+  { key: "darkpattern", icon: "🚩", tag: "LIVE", title: "Dark pattern detector", desc: "Scans a page's cookie/consent banner markup for pre-ticked boxes and hidden reject options.", stat: "Enter any URL" },
+  { key: "notice", icon: "📜", tag: "LIVE", title: "Mock regulator notice", desc: "Generates an illustrative DPDP Board-style notice from a scan's violations.", stat: "Needs a scan first" },
+  { key: "badge", icon: "🛡️", tag: "LIVE", title: "DPDP verified badge", desc: "An embeddable, live-linked badge for your site showing the latest scan result.", stat: "Needs a scan first" },
 ];
 
 const TAG_STYLE = {
@@ -38,7 +38,7 @@ export default function Dashboard({ onNavigate, userEmail }) {
       <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "22px 40px", borderBottom: "1px solid #232838" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, fontWeight: 700, fontSize: 18 }}>
           <div style={{ width: 26, height: 26, borderRadius: 6, background: "linear-gradient(135deg, #ff4d4d, #b32424)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>🚩</div>
-          ConsentClear
+          RedFlag
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
           <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, color: "#838aa0" }}>{userEmail}</span>
