@@ -11,6 +11,36 @@ import NoticePanel from "./components/NoticePanel";
 import DarkPatternPanel from "./components/DarkPatternPanel";
 import BadgePanel from "./components/BadgePanel";
 
+// Shared "you need a scan first" screen, reused by any panel that
+// requires a scanId/policyId we don't have yet. Keeping this here
+// (instead of silently rerouting in onNavigate) means clicking a
+// dashboard card always opens the panel it says it opens.
+function RequiresScan({ title, onBack, onGoScan }) {
+  return (
+    <div style={{ minHeight: "100vh", background: "#0b0e14", color: "#e8eaf0", fontFamily: "'Space Grotesk', sans-serif" }}>
+      <header style={{ display: "flex", alignItems: "center", gap: 12, padding: "18px 24px", borderBottom: "1px solid #232838" }}>
+        <button onClick={onBack} style={{ background: "none", border: "1px solid #232838", borderRadius: 6, color: "#838aa0", fontSize: 13, padding: "6px 12px", cursor: "pointer" }}>
+          ← Dashboard
+        </button>
+        <span style={{ fontWeight: 600 }}>{title}</span>
+      </header>
+      <div style={{ maxWidth: 460, margin: "120px auto 0", textAlign: "center", padding: "0 24px" }}>
+        <div style={{ fontSize: 32, marginBottom: 16 }}>🔍</div>
+        <h2 style={{ fontSize: 20, fontWeight: 600, marginBottom: 10 }}>Scan a policy first</h2>
+        <p style={{ color: "#838aa0", fontSize: 14, lineHeight: 1.6, marginBottom: 24 }}>
+          {title} needs a scan to work with. Run a scan and you'll be able to come back here.
+        </p>
+        <button
+          onClick={onGoScan}
+          style={{ background: "#ff4d4d", border: "none", borderRadius: 8, padding: "12px 24px", color: "#fff", fontWeight: 600, fontSize: 14, cursor: "pointer" }}
+        >
+          Go to new scan →
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   const [session, setSession] = useState(undefined); // undefined = checking, null = logged out
   const [view, setView] = useState("dashboard"); // dashboard | scan | result | chat | history | notice | darkpattern | badge
@@ -49,22 +79,37 @@ export default function App() {
       <Dashboard
         userEmail={session.user.email}
         onNavigate={(key) => {
+          // Always go to the panel that was actually clicked. Panels
+          // that need a scanId/policyId show their own "scan first"
+          // prompt below instead of us silently redirecting here.
           if (key === "scan" || key === "monitor") goToScan();
-          else if (key === "chat") setView(scanId ? "chat" : "scan");
-          else if (key === "history") setView(policyId ? "history" : "scan");
-          else if (key === "notice") setView(scanId ? "notice" : "scan");
-          else if (key === "badge") setView(policyId ? "badge" : "scan");
-          else if (key === "darkpattern") setView("darkpattern");
+          else setView(key);
         }}
       />
     );
   }
 
-  if (view === "chat") return <ChatPanel scanId={scanId} onBack={goToDashboard} />;
-  if (view === "history") return <HistoryPanel policyId={policyId} onBack={goToDashboard} />;
-  if (view === "notice") return <NoticePanel scanId={scanId} onBack={goToDashboard} />;
+  if (view === "chat") {
+    return scanId
+      ? <ChatPanel scanId={scanId} onBack={goToDashboard} />
+      : <RequiresScan title="Chat with the policy" onBack={goToDashboard} onGoScan={goToScan} />;
+  }
+  if (view === "history") {
+    return policyId
+      ? <HistoryPanel policyId={policyId} onBack={goToDashboard} />
+      : <RequiresScan title="Compliance history" onBack={goToDashboard} onGoScan={goToScan} />;
+  }
+  if (view === "notice") {
+    return scanId
+      ? <NoticePanel scanId={scanId} onBack={goToDashboard} />
+      : <RequiresScan title="Mock regulator notice" onBack={goToDashboard} onGoScan={goToScan} />;
+  }
+  if (view === "badge") {
+    return policyId
+      ? <BadgePanel policyId={policyId} onBack={goToDashboard} />
+      : <RequiresScan title="DPDP verified badge" onBack={goToDashboard} onGoScan={goToScan} />;
+  }
   if (view === "darkpattern") return <DarkPatternPanel onBack={goToDashboard} />;
-  if (view === "badge") return <BadgePanel policyId={policyId} onBack={goToDashboard} />;
 
   // view === "scan" or "result"
   return (
