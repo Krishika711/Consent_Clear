@@ -1,5 +1,6 @@
 import React from "react";
 import { supabase } from "../lib/supabaseClient";
+import Mascot from "./Mascot";
 
 const ICONS = {
   dashboard: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></svg>,
@@ -23,7 +24,7 @@ export default function Shell({ active, onNavigate, userEmail, children, showCha
   return (
     <div style={{ minHeight: "100vh" }}>
       <div className="topbar">
-        <div className="brand"><span className="mark">R</span> ConsentClear</div>
+        <div className="brand"><Mascot size={22} /> ConsentClear</div>
         <div className="topbar-right">
           <span>{userEmail}</span>
           <button className="logout" onClick={logout}>Log out</button>
