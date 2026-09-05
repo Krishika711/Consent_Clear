@@ -36,7 +36,7 @@ export default function AuthPage() {
       <div style={{ width: "100%", maxWidth: 380, padding: "0 24px" }}>
         <div className="auth-brand-row">
           <span className="brand"><span className="mark">R</span></span>
-          <span className="name">RedFlag</span>
+          <span className="name">ConsentClear</span>
         </div>
 
         <div className="auth-card">
