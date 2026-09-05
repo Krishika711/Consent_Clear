@@ -37,7 +37,7 @@ export default function VerdictCard({ result, sourceLabel, scannedAt, onRescan }
   };
 
   const shareReport = () => {
-    const text = `RedFlag Scan Result: ${result.risk_score} RISK\n${result.risk_summary || ""}\nFine exposure: ${result.fine_exposure || "n/a"}\nViolations: ${violations.length}`;
+    const text = `ConsentClear Scan Result: ${result.risk_score} RISK\n${result.risk_summary || ""}\nFine exposure: ${result.fine_exposure || "n/a"}\nViolations: ${violations.length}`;
     navigator.clipboard.writeText(text);
     setShareCopied(true);
     setTimeout(() => setShareCopied(false), 2000);

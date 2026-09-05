@@ -23,7 +23,7 @@ export default function Shell({ active, onNavigate, userEmail, children, showCha
   return (
     <div style={{ minHeight: "100vh" }}>
       <div className="topbar">
-        <div className="brand"><span className="mark">R</span> RedFlag</div>
+        <div className="brand"><span className="mark">R</span> ConsentClear</div>
         <div className="topbar-right">
           <span>{userEmail}</span>
           <button className="logout" onClick={logout}>Log out</button>
