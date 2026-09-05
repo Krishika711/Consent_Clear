@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import { supabase } from "../lib/supabaseClient";
+import Mascot from "./Mascot";
 
-export default function AuthPage() {
-  const [mode, setMode] = useState("login"); // "login" | "signup"
+export default function AuthPage({ initialMode = "login", onBack }) {
+  const [mode, setMode] = useState(initialMode); // "login" | "signup"
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -35,9 +36,17 @@ export default function AuthPage() {
     <div className="auth-wrap">
       <div style={{ width: "100%", maxWidth: 380, padding: "0 24px" }}>
         <div className="auth-brand-row">
-          <span className="brand"><span className="mark">R</span></span>
+          <span className="brand"><Mascot size={28} /></span>
           <span className="name">ConsentClear</span>
         </div>
+        {onBack && (
+          <button
+            onClick={onBack}
+            style={{ display: "block", margin: "-16px auto 20px", color: "var(--text-dim)", fontSize: 13 }}
+          >
+            ← Back
+          </button>
+        )}
 
         <div className="auth-card">
           <h1>{mode === "login" ? "Log in" : "Create an account"}</h1>

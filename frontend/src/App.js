@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { supabase } from "./lib/supabaseClient";
 import "./styles/theme.css";
 import AuthPage from "./components/AuthPage";
+import LandingPage from "./components/LandingPage";
 import Shell from "./components/Shell";
 import Dashboard from "./components/Dashboard";
 import InputSection from "./components/InputSection";
@@ -17,6 +18,7 @@ import RequiresScan from "./components/RequiresScan";
 export default function App() {
   const [session, setSession] = useState(undefined); // undefined = checking, null = logged out
   const [view, setView] = useState("dashboard");
+  const [authGate, setAuthGate] = useState("landing"); // "landing" | "login" | "signup", only used while logged out
 
   const [result, setResult] = useState(null);
   const [scanId, setScanId] = useState(null);
@@ -36,7 +38,15 @@ export default function App() {
     return <div style={{ minHeight: "100vh", background: "#0a0b0d" }} />;
   }
   if (!session) {
-    return <AuthPage />;
+    if (authGate === "landing") {
+      return (
+        <LandingPage
+          onLogin={() => setAuthGate("login")}
+          onSignup={() => setAuthGate("signup")}
+        />
+      );
+    }
+    return <AuthPage initialMode={authGate} onBack={() => setAuthGate("landing")} />;
   }
 
   const handleResult = (data) => {
