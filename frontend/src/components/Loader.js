@@ -19,13 +19,12 @@ export default function Loader() {
   }, []);
 
   return (
-    <div style={{ textAlign: "center", padding: "60px 20px" }}>
-      <div style={{ display: "inline-block", width: 36, height: 36, border: "2px solid #1a1a1a", borderTop: "2px solid #ef4444", borderRadius: "50%", animation: "spin 0.8s linear infinite", marginBottom: 20 }} />
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      <div style={{ color: "#555", fontSize: 14 }}>{steps[step]}</div>
-      <div style={{ display: "flex", justifyContent: "center", gap: 6, marginTop: 16 }}>
+    <div className="loader-wrap">
+      <div className="spinner" />
+      <div className="loader-step">{steps[step]}</div>
+      <div className="loader-dots">
         {steps.map((_, i) => (
-          <div key={i} style={{ width: 6, height: 6, borderRadius: "50%", background: i <= step ? "#ef4444" : "#1a1a1a", transition: "background 0.3s" }} />
+          <div key={i} className={`d${i <= step ? " on" : ""}`} />
         ))}
       </div>
     </div>

@@ -1,24 +1,34 @@
 import React, { useState } from "react";
 
-const SCORE_CONFIG = {
-  CRITICAL: { color: "#ef4444", bg: "#1a0505", border: "#3a0f0f", label: "CRITICAL RISK" },
-  HIGH:     { color: "#f97316", bg: "#1a0d05", border: "#3a1a0a", label: "HIGH RISK" },
-  MEDIUM:   { color: "#eab308", bg: "#1a1505", border: "#3a2e0a", label: "MEDIUM RISK" },
-  LOW:      { color: "#22c55e", bg: "#051a0a", border: "#0a3a15", label: "LOW RISK" },
-};
+const RISK_COLOR = { CRITICAL: "#f0847a", HIGH: "#e0912f", MEDIUM: "#d4b23c", LOW: "#3fb377" };
+const RISK_BG = { CRITICAL: "#2b1210", HIGH: "#3a1f14", MEDIUM: "#1f1e10", LOW: "#0f2419" };
+const SEV_KEYS = ["CRITICAL", "HIGH", "MEDIUM", "LOW"];
+const STATUS_ICON = { pass: { icon: "✓", color: "#3fb377" }, fail: { icon: "✗", color: "#f0847a" }, partial: { icon: "~", color: "#d4b23c" } };
 
-const SEVERITY_COLOR = { HIGH: "#ef4444", MEDIUM: "#eab308", LOW: "#22c55e" };
-const STATUS_CONFIG = {
-  pass:    { color: "#22c55e", icon: "✓" },
-  fail:    { color: "#ef4444", icon: "✗" },
-  partial: { color: "#eab308", icon: "~" },
-};
+function computeScore(result) {
+  if (result.checklist?.length) {
+    const total = result.checklist.length;
+    const pts = result.checklist.reduce((s, c) => s + (c.status === "pass" ? 1 : c.status === "partial" ? 0.5 : 0), 0);
+    return Math.round((pts / total) * 100);
+  }
+  const map = { LOW: 90, MEDIUM: 68, HIGH: 42, CRITICAL: 18 };
+  return map[result.risk_score] ?? 50;
+}
 
-export default function VerdictCard({ result }) {
+export default function VerdictCard({ result, sourceLabel, scannedAt, onRescan }) {
   const [expanded, setExpanded] = useState(null);
-  const [plainEnglish, setPlainEnglish] = useState(false);
+  const [filter, setFilter] = useState("ALL");
   const [copied, setCopied] = useState(null);
-  const cfg = SCORE_CONFIG[result.risk_score] || SCORE_CONFIG.MEDIUM;
+  const [shareCopied, setShareCopied] = useState(false);
+
+  const score = computeScore(result);
+  const riskColor = RISK_COLOR[result.risk_score] || RISK_COLOR.MEDIUM;
+  const violations = result.violations || [];
+  const counts = SEV_KEYS.reduce((acc, k) => ({ ...acc, [k]: violations.filter((v) => (v.severity || "").toUpperCase() === k).length }), {});
+  const maxCount = Math.max(1, ...Object.values(counts));
+  const filtered = filter === "ALL" ? violations : violations.filter((v) => (v.severity || "").toUpperCase() === filter);
+  const compliantCount = result.checklist?.filter((c) => c.status === "pass").length ?? result.compliant_areas?.length ?? 0;
+  const totalReviewed = result.checklist?.length || compliantCount + violations.length;
 
   const copyClause = (text, i) => {
     navigator.clipboard.writeText(text);
@@ -26,134 +36,165 @@ export default function VerdictCard({ result }) {
     setTimeout(() => setCopied(null), 2000);
   };
 
-  const shareVerdict = () => {
-    const text = `RedFlag Scan Result: ${result.risk_score} RISK\n${result.risk_summary}\nFine exposure: ${result.fine_exposure}\nViolations: ${result.violations?.length || 0}`;
+  const shareReport = () => {
+    const text = `RedFlag Scan Result: ${result.risk_score} RISK\n${result.risk_summary || ""}\nFine exposure: ${result.fine_exposure || "n/a"}\nViolations: ${violations.length}`;
     navigator.clipboard.writeText(text);
-    alert("Verdict copied to clipboard!");
+    setShareCopied(true);
+    setTimeout(() => setShareCopied(false), 2000);
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-
-      {/* Risk score banner */}
-      <div style={{ background: cfg.bg, border: `1px solid ${cfg.border}`, borderRadius: 16, padding: "24px 28px" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-          <div>
-            <div style={{ color: cfg.color, fontSize: 12, fontWeight: 700, letterSpacing: "0.1em", marginBottom: 6 }}>{cfg.label}</div>
-            <div style={{ fontSize: 15, color: "#ccc", maxWidth: 480 }}>{result.risk_summary}</div>
-          </div>
-          <div style={{ fontSize: 48, fontWeight: 800, color: cfg.color, opacity: 0.9, letterSpacing: "-2px" }}>
-            {result.risk_score}
-          </div>
+    <div>
+      <div className="results-topline">
+        <div className="results-input">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 13a5 5 0 007.5.5l2-2a5 5 0 00-7-7l-1 1" /><path d="M14 11a5 5 0 00-7.5-.5l-2 2a5 5 0 007 7l1-1" /></svg>
+          {sourceLabel || "Scanned policy"}
         </div>
-        <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-          <button onClick={shareVerdict} style={{ background: "#1a1a1a", border: "1px solid #2a2a2a", borderRadius: 8, padding: "7px 14px", color: "#aaa", fontSize: 12, cursor: "pointer" }}>
-            📋 Copy verdict
-          </button>
-          <div style={{ background: "#1a1a1a", border: "1px solid #2a2a2a", borderRadius: 8, padding: "7px 14px", color: "#555", fontSize: 12 }}>
-            {result.jurisdiction || "DPDP"} Act
-          </div>
+        <button className="rescan-btn" onClick={onRescan}>New scan</button>
+        <div className="jur-pill">{result.jurisdiction || "DPDP Act 2023"}</div>
+      </div>
+
+      <div className="res-header">
+        <div>
+          <h2>Scan Results</h2>
+          <div className="jur-line">Jurisdiction: <b>{result.jurisdiction || "DPDP Act 2023"}</b></div>
+        </div>
+        <div className="sev-filters">
+          <button className={`sev-btn${filter === "ALL" ? " active" : ""}`} onClick={() => setFilter("ALL")}>ALL</button>
+          {SEV_KEYS.map((k) => (
+            <button key={k} className={`sev-btn${filter === k ? ` active-${k.toLowerCase()}` : ""}`} onClick={() => setFilter(k)}>{k}</button>
+          ))}
         </div>
       </div>
 
-      {/* Fine exposure */}
-      {result.fine_exposure && (
-        <div style={{ background: "#0f0f0f", border: "1px solid #1a1a1a", borderRadius: 12, padding: "14px 18px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <span style={{ color: "#555", fontSize: 13 }}>estimated fine exposure</span>
-          <span style={{ color: "#ef4444", fontWeight: 600, fontSize: 14 }}>{result.fine_exposure}</span>
+      <div className="summary-card">
+        <div className="score-ring" style={{ background: `conic-gradient(${riskColor} 0% ${score}%, #25282e ${score}% 100%)` }}>
+          <div className="val"><b>{score}</b><span>/ 100</span></div>
         </div>
-      )}
-
-      {/* Plain English toggle + What they can do */}
-      {result.what_they_can_do?.length > 0 && (
-        <div style={{ background: "#0f0f0f", border: "1px solid #1a1a1a", borderRadius: 12, padding: "18px 20px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-            <div style={{ color: "#888", fontSize: 11, fontWeight: 600, letterSpacing: "0.08em" }}>WHAT THEY CAN DO WITH YOUR DATA</div>
-            <button
-              onClick={() => setPlainEnglish(!plainEnglish)}
-              style={{ background: plainEnglish ? "#1a2a1a" : "#1a1a1a", border: plainEnglish ? "1px solid #22c55e" : "1px solid #2a2a2a", borderRadius: 6, padding: "4px 10px", color: plainEnglish ? "#22c55e" : "#555", fontSize: 11, cursor: "pointer" }}
-            >
-              {plainEnglish ? "✓ Plain English" : "Plain English"}
-            </button>
-          </div>
-          {result.what_they_can_do.map((item, i) => (
-            <div key={i} style={{ display: "flex", gap: 10, marginBottom: 8, alignItems: "flex-start" }}>
-              <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#333", marginTop: 6, flexShrink: 0 }} />
-              <span style={{ color: "#bbb", fontSize: 14, lineHeight: 1.5 }}>
-                {plainEnglish ? item : item}
-              </span>
+        <div className="summary-mid">
+          <div className="summary-mid-top">
+            <h3>Privacy Policy Analysis</h3>
+            <div className="risk-badge" style={{ background: RISK_BG[result.risk_score] || RISK_BG.MEDIUM, color: riskColor }}>
+              <span className="dot" />{result.risk_score}
             </div>
-          ))}
-        </div>
-      )}
-
-      {/* Violations */}
-      {result.violations?.length > 0 && (
-        <div style={{ background: "#0f0f0f", border: "1px solid #1a1a1a", borderRadius: 12, overflow: "hidden" }}>
-          <div style={{ padding: "14px 20px", borderBottom: "1px solid #1a1a1a" }}>
-            <span style={{ color: "#888", fontSize: 11, fontWeight: 600, letterSpacing: "0.08em" }}>
-              VIOLATIONS FOUND — {result.violations.length}
-            </span>
           </div>
-          {result.violations.map((v, i) => (
-            <div key={i} style={{ borderBottom: i < result.violations.length - 1 ? "1px solid #111" : "none" }}>
-              <div
-                onClick={() => setExpanded(expanded === i ? null : i)}
-                style={{ padding: "14px 20px", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                  <span style={{ background: SEVERITY_COLOR[v.severity] + "22", color: SEVERITY_COLOR[v.severity], fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 4 }}>
-                    {v.severity}
-                  </span>
-                  <span style={{ color: "#3b82f6", fontSize: 13, fontWeight: 500 }}>{v.clause}</span>
-                  <span style={{ color: "#aaa", fontSize: 13 }}>{v.issue?.slice(0, 60)}{v.issue?.length > 60 ? "..." : ""}</span>
+          <p>{sourceLabel} · Scanned {scannedAt ? new Date(scannedAt).toLocaleString() : "just now"}</p>
+        </div>
+        <div className="summary-actions">
+          <button className="sum-btn" onClick={() => window.print()}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" /><path d="M14 2v6h6" /></svg>
+            Export PDF
+          </button>
+          <button className="sum-btn" onClick={shareReport}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><path d="M8.6 13.5l6.8 3.9M15.4 6.6L8.6 10.5" /></svg>
+            {shareCopied ? "Copied!" : "Share Report"}
+          </button>
+          <button className="sum-btn" onClick={onRescan}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M23 4v6h-6M1 20v-6h6" /><path d="M3.5 9a9 9 0 0114.6-3.4L23 10M1 14l4.9 4.4A9 9 0 0020.5 15" /></svg>
+            Re-scan
+          </button>
+        </div>
+      </div>
+
+      <div className="metric-row">
+        <div className="metric-card">
+          <div className="metric-label">EST. FINE EXPOSURE</div>
+          <div className="metric-val fine">{result.fine_exposure || "—"}</div>
+          <div className="metric-sub">under {result.jurisdiction || "DPDP Act 2023"}</div>
+        </div>
+        <div className="metric-card">
+          <div className="metric-label">VIOLATIONS FOUND</div>
+          <div className="metric-val">{violations.length}</div>
+          <div className="metric-sub">across {totalReviewed} clauses reviewed</div>
+        </div>
+        <div className="metric-card">
+          <div className="metric-label">COMPLIANT CLAUSES</div>
+          <div className="metric-val">{compliantCount}</div>
+          <div className="metric-sub">of {totalReviewed} total reviewed</div>
+        </div>
+      </div>
+
+      <div className="sev-row">
+        {SEV_KEYS.map((k) => (
+          <div key={k} className={`sev-card ${k.toLowerCase()}`}>
+            <div className="lbl">{k}</div>
+            <div className="n">{counts[k]}</div>
+            <div className="sev-bar" style={{ width: `${(counts[k] / maxCount) * 100}%` }} />
+          </div>
+        ))}
+      </div>
+
+      {violations.length > 0 && (
+        <>
+          <div className="viol-header">
+            <h3>Violations</h3>
+            <span>{filter === "ALL" ? `${violations.length} shown` : `filtered by ${filter} · ${filtered.length} shown`}</span>
+          </div>
+
+          {filtered.map((v, i) => {
+            const sev = (v.severity || "MEDIUM").toLowerCase();
+            const isOpen = expanded === i;
+            return (
+              <div key={i} className="viol-card">
+                <div className="viol-top" onClick={() => setExpanded(isOpen ? null : i)}>
+                  <div className={`viol-sev ${sev}`}><span className="dot" />{v.severity}</div>
+                  <span className="viol-clause">{v.clause}</span>
                 </div>
-                <span style={{ color: "#444", fontSize: 12 }}>{expanded === i ? "▲" : "▼"}</span>
-              </div>
-              {expanded === i && (
-                <div style={{ padding: "0 20px 16px", display: "flex", flexDirection: "column", gap: 10 }}>
-                  <div style={{ background: "#080808", borderRadius: 8, padding: "12px 14px" }}>
-                    <div style={{ color: "#555", fontSize: 11, marginBottom: 4 }}>ISSUE</div>
-                    <div style={{ color: "#bbb", fontSize: 13, lineHeight: 1.5 }}>{v.issue}</div>
-                  </div>
-                  <div style={{ background: "#050d0a", border: "1px solid #0a2015", borderRadius: 8, padding: "12px 14px" }}>
-                    <div style={{ color: "#22c55e", fontSize: 11, marginBottom: 4 }}>HOW TO FIX</div>
-                    <div style={{ color: "#bbb", fontSize: 13, lineHeight: 1.5 }}>{v.fix}</div>
-                  </div>
-                  {v.rewritten_clause && (
-                    <div style={{ background: "#080d14", border: "1px solid #0a1a30", borderRadius: 8, padding: "12px 14px" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                        <div style={{ color: "#3b82f6", fontSize: 11 }}>REWRITTEN CLAUSE — COPY & PASTE</div>
-                        <button
-                          onClick={() => copyClause(v.rewritten_clause, i)}
-                          style={{ background: copied === i ? "#0a2a0a" : "#1a1a2a", border: copied === i ? "1px solid #22c55e" : "1px solid #2a2a3a", borderRadius: 6, padding: "3px 10px", color: copied === i ? "#22c55e" : "#3b82f6", fontSize: 11, cursor: "pointer" }}
-                        >
-                          {copied === i ? "✓ Copied!" : "Copy"}
-                        </button>
-                      </div>
-                      <div style={{ color: "#bbb", fontSize: 13, lineHeight: 1.6, fontStyle: "italic" }}>{v.rewritten_clause}</div>
+                <div className="viol-title" onClick={() => setExpanded(isOpen ? null : i)}>{v.issue}</div>
+                {!isOpen && <div className="viol-desc">{v.fix?.slice(0, 120)}{v.fix?.length > 120 ? "…" : ""}</div>}
+                <button className="viol-toggle" onClick={() => setExpanded(isOpen ? null : i)}>
+                  {isOpen ? "Hide details" : "Show suggested rewrite"}
+                  <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" style={{ transform: isOpen ? "rotate(180deg)" : "none" }}><path d="M6 9l6 6 6-6" /></svg>
+                </button>
+                {isOpen && (
+                  <div className="viol-body">
+                    <div className="viol-box issue">
+                      <div className="k" style={{ color: "#8b8f96" }}>ISSUE</div>
+                      <div className="v">{v.issue}</div>
                     </div>
-                  )}
-                </div>
-              )}
-            </div>
+                    <div className="viol-box fix">
+                      <div className="k" style={{ color: "#3fb377" }}>HOW TO FIX</div>
+                      <div className="v">{v.fix}</div>
+                    </div>
+                    {v.rewritten_clause && (
+                      <div className="diff-box">
+                        <div className="diff-line added">{v.rewritten_clause}</div>
+                      </div>
+                    )}
+                    {v.rewritten_clause && (
+                      <button className="diff-copy" onClick={() => copyClause(v.rewritten_clause, i)}>
+                        {copied === i ? "✓ Copied!" : "Copy rewritten clause"}
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </>
+      )}
+
+      {result.what_they_can_do?.length > 0 && (
+        <div className="section-card">
+          <div className="section-label">WHAT THEY CAN DO WITH YOUR DATA</div>
+          {result.what_they_can_do.map((item, i) => (
+            <div key={i} className="bullet-row"><div className="dot" /><span className="text">{item}</span></div>
           ))}
         </div>
       )}
 
-      {/* Checklist */}
       {result.checklist?.length > 0 && (
-        <div style={{ background: "#0f0f0f", border: "1px solid #1a1a1a", borderRadius: 12, padding: "18px 20px" }}>
-          <div style={{ color: "#888", fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", marginBottom: 14 }}>COMPLIANCE CHECKLIST</div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+        <div className="section-card">
+          <div className="section-label">COMPLIANCE CHECKLIST</div>
+          <div className="checklist-grid">
             {result.checklist.map((c, i) => {
-              const s = STATUS_CONFIG[c.status] || STATUS_CONFIG.partial;
+              const s = STATUS_ICON[c.status] || STATUS_ICON.partial;
               return (
-                <div key={i} style={{ background: "#080808", borderRadius: 8, padding: "10px 12px", display: "flex", gap: 8, alignItems: "flex-start" }}>
-                  <span style={{ color: s.color, fontSize: 14, fontWeight: 700, flexShrink: 0 }}>{s.icon}</span>
+                <div key={i} className="checklist-item">
+                  <span className="ico" style={{ color: s.color }}>{s.icon}</span>
                   <div>
-                    <div style={{ color: "#bbb", fontSize: 12, fontWeight: 500 }}>{c.item}</div>
-                    <div style={{ color: "#555", fontSize: 11, marginTop: 2 }}>{c.note}</div>
+                    <div className="lbl">{c.item}</div>
+                    <div className="note">{c.note}</div>
                   </div>
                 </div>
               );
@@ -162,15 +203,11 @@ export default function VerdictCard({ result }) {
         </div>
       )}
 
-      {/* Compliant areas */}
       {result.compliant_areas?.length > 0 && (
-        <div style={{ background: "#0f0f0f", border: "1px solid #1a1a1a", borderRadius: 12, padding: "18px 20px" }}>
-          <div style={{ color: "#888", fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", marginBottom: 12 }}>WHAT THEY GOT RIGHT</div>
+        <div className="section-card">
+          <div className="section-label">WHAT THEY GOT RIGHT</div>
           {result.compliant_areas.map((item, i) => (
-            <div key={i} style={{ display: "flex", gap: 10, marginBottom: 8, alignItems: "flex-start" }}>
-              <div style={{ color: "#22c55e", fontSize: 12, marginTop: 2 }}>✓</div>
-              <span style={{ color: "#bbb", fontSize: 14, lineHeight: 1.5 }}>{item}</span>
-            </div>
+            <div key={i} className="bullet-row"><span className="dot ok" style={{ color: "#3fb377" }}>✓</span><span className="text">{item}</span></div>
           ))}
         </div>
       )}
